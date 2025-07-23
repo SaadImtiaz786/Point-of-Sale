@@ -1,0 +1,114 @@
+<div style="margin: 2rem;">
+  <style>
+    .orders-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      background: #fff;
+      border-radius: 1rem;
+      overflow: hidden;
+      box-shadow: 0 2px 12px #7b2ff211;
+      margin-top: 1.5rem;
+    }
+    .orders-table th, .orders-table td {
+      padding: 0.9rem 1rem;
+      font-size: 1.08rem;
+      vertical-align: top;
+    }
+    .orders-table th {
+      background: var(--primary, #7b2ff2);
+      color: #fff;
+      font-weight: 700;
+      border-bottom: 2px solid #f357a8;
+      text-align: left;
+    }
+    .orders-table td {
+      border-bottom: 1px solid #f0f0f0;
+      text-align: left;
+    }
+    .orders-table td.num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .orders-table tr:last-child td {
+      border-bottom: none;
+    }
+    .orders-table ul {
+      margin: 0;
+      padding-left: 1.1em;
+      list-style: disc;
+    }
+    .orders-table tr:nth-child(even) td {
+      background: #fafaff;
+    }
+    .orders-table tr:hover td {
+      background: #f3eaff;
+    }
+    .orders-filter-bar {
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .orders-filter-bar label {
+      font-weight: 500;
+      color: #555;
+    }
+    .orders-filter-bar input[type="date"] {
+      padding: 0.3rem 0.7rem;
+      border-radius: 0.4rem;
+      border: 1px solid #e0e0e0;
+      font-size: 1rem;
+    }
+    .orders-filter-bar button {
+      background: #eee;
+      border: none;
+      border-radius: 0.4rem;
+      padding: 0.3rem 0.8rem;
+      cursor: pointer;
+      font-size: 1rem;
+      color: #7b2ff2;
+      font-weight: 600;
+      transition: background 0.15s;
+    }
+    .orders-filter-bar button:hover {
+      background: #f3eaff;
+    }
+  </style>
+  <div class="orders-filter-bar">
+    <label>Filter by Date:</label>
+    <input type="date" [(ngModel)]="filterDate" />
+    <button (click)="filterDate=''">Clear</button>
+  </div>
+  <table class="orders-table">
+    <thead>
+      <tr>
+        <th style="text-align:center; width: 80px;">Order #</th>
+        <th style="width: 140px;">Customer</th>
+        <th style="width: 170px;">Date</th>
+        <th>Items</th>
+        <th style="text-align:right; width: 110px;">Total (Rs)</th>
+        <th style="text-align:right; width: 110px;">Cash Paid</th>
+        <th style="text-align:right; width: 110px;">Return</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let order of filteredSales">
+        <td style="text-align:center;">{{ order.id }}</td>
+        <td>{{ order.customerName || 'N/A' }}</td>
+        <td>{{ order.date | date:'yyyy-MM-dd HH:mm' }}</td>
+        <td>
+          <ul>
+            <li *ngFor="let item of order.items">{{ item.name }} (x{{ item.qty }})</li>
+          </ul>
+        </td>
+        <td class="num">{{ order.total }}</td>
+        <td class="num">{{ order.cashPaid }}</td>
+        <td class="num">{{ order.returnAmount }}</td>
+      </tr>
+      <tr *ngIf="filteredSales.length === 0">
+        <td colspan="7" style="text-align:center; color:#888;">No orders found.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
