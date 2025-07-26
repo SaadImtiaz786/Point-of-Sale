@@ -181,7 +181,7 @@
       <div
         style="background:#f7f7fa;border-radius:1rem;border:1px solid #e0e0e0;padding:1rem 0.5rem 0.7rem 0.5rem;display:flex;flex-direction:column;align-items:center;cursor:pointer;box-shadow:0 2px 8px #7b2ff211;"
         *ngFor="let prod of pagedProducts"
-        (click)="addProduct(prod)"
+        (click)="addToCart(prod)"
       >
         <span style="font-size:2.5rem;color:#7b2ff2;margin-bottom:0.5rem;">🛒</span>
         <div class="product-name" [innerHTML]="highlightSearch(prod.name)"></div>

@@ -1,24 +1,10 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { NgIf, NgFor, DatePipe, NgStyle } from '@angular/common';
+import { NgIf, NgFor, DatePipe, NgStyle, CommonModule } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-
-interface Product {
-  name: string;
-  price: number;
-}
-interface CartItem extends Product {
-  qty: number;
-}
-interface SaleOrder {
-  id: number;
-  customerName: string;
-  items: CartItem[];
-  total: number;
-  cashPaid: number;
-  returnAmount: number;
-  date: Date;
-}
+import { ProductService } from './services/product.service';
+import { OrderService } from './services/order.service';
+import { CartItem, Product, SaleOrder } from './models';
 
 @Component({
   selector: 'app-pos',
@@ -27,74 +13,64 @@ interface SaleOrder {
   templateUrl: './pos.component.html',
 })
 export class PosComponent implements OnInit, OnDestroy {
+  products: Product[] = [];
+  filteredProducts: Product[] = [];
+  cart: CartItem[] = [];
   customerName = '';
   productSearch = '';
-  cart: CartItem[] = [];
   cashPaid: number = 0;
   returnAmount: number = 0;
-
-  products: Product[] = [
-    { name: 'Shirt', price: 1200 },
-    { name: 'Jeans', price: 2200 },
-    { name: 'Sneakers', price: 3500 },
-    { name: 'Handbag', price: 1800 },
-    { name: 'Wrist Watch', price: 4500 },
-    { name: 'Perfume', price: 2100 },
-    { name: 'Sunglasses', price: 900 },
-    { name: 'Trousers', price: 1600 },
-    { name: 'T-Shirt', price: 800 },
-    { name: 'Jacket', price: 3200 },
-    { name: 'Sandals', price: 1100 },
-    { name: 'Cap', price: 400 },
-    { name: 'Socks', price: 200 },
-    { name: 'Belt', price: 600 },
-    { name: 'Wallet', price: 750 },
-    { name: 'Backpack', price: 1700 },
-    { name: 'Dress', price: 2500 },
-    { name: 'Scarf', price: 350 },
-    { name: 'Tie', price: 300 },
-    { name: 'Blazer', price: 2800 },
-    { name: 'Formal Shoes', price: 2700 },
-    { name: 'Sports Shoes', price: 3200 },
-    { name: 'Kurta', price: 1300 },
-    { name: 'Dupatta', price: 500 },
-    { name: 'Earrings', price: 650 },
-    { name: 'Necklace', price: 1200 },
-    { name: 'Ring', price: 900 },
-    { name: 'Makeup Kit', price: 2100 },
-    { name: 'Hair Dryer', price: 1800 },
-    { name: 'Towel', price: 350 },
-    { name: 'Bedsheet', price: 1400 },
-    { name: 'Pillow', price: 700 },
-    { name: 'Blanket', price: 2200 },
-    { name: 'Cookware Set', price: 3200 },
-    { name: 'Dinner Set', price: 2500 },
-    { name: 'Water Bottle', price: 350 },
-    { name: 'Lunch Box', price: 600 },
-    { name: 'Notebook', price: 120 },
-    { name: 'Pen', price: 50 },
-    { name: 'Back Cover', price: 300 }
-  ];
-
-  filteredProducts: Product[] = [...this.products];
   pageSize = 8;
   currentPage = 1;
+  isLoading = true;
+  error: string | null = null;
+  isCheckingOut = false;
 
-  // Sales storage (simulate backend)
-  static sales: SaleOrder[] = [];
-  static orderIdCounter = 1;
+  constructor(
+    private productService: ProductService,
+    private orderService: OrderService,
+    private sanitizer: DomSanitizer
+  ) {}
 
-  constructor(private sanitizer: DomSanitizer) {}
-
-  ngOnInit() {
+  ngOnInit(): void {
+    this.loadProducts();
+    this.productService.products$.subscribe({
+      next: (products) => {
+        this.products = products;
+        this.filteredProducts = [...products];
+      },
+      error: (err: any) => {
+        console.error('Error in products subscription:', err);
+        this.error = 'Error loading products. Please refresh the page.';
+      }
+    });
     window.addEventListener('toggle-add-product', this.toggleAddProductForm);
   }
+
   ngOnDestroy() {
     window.removeEventListener('toggle-add-product', this.toggleAddProductForm);
   }
+
   toggleAddProductForm = () => {
     this.showAddProduct = !this.showAddProduct;
   };
+
+  private loadProducts(): void {
+    this.isLoading = true;
+    this.error = null;
+    this.productService.getProducts().subscribe({
+      next: (products) => {
+        this.products = products;
+        this.filteredProducts = [...products];
+        this.isLoading = false;
+      },
+      error: (error: any) => {
+        console.error('Error loading products:', error);
+        this.error = 'Failed to load products. Please try again.';
+        this.isLoading = false;
+      }
+    });
+  }
 
   get totalPages() {
     return Math.ceil(this.filteredProducts.length / this.pageSize);
@@ -105,11 +81,19 @@ export class PosComponent implements OnInit, OnDestroy {
     return this.filteredProducts.slice(start, start + this.pageSize);
   }
 
+  filterProducts(): void {
+    const searchTerm = this.productSearch.toLowerCase().trim();
+    if (!searchTerm) {
+      this.filteredProducts = [...this.products];
+      return;
+    }
+    this.filteredProducts = this.products.filter(p => 
+      p.name.toLowerCase().includes(searchTerm)
+    );
+  }
+
   onProductSearch() {
-    const term = this.productSearch.trim().toLowerCase();
-    this.filteredProducts = term
-      ? this.products.filter(p => p.name.toLowerCase().includes(term))
-      : [...this.products];
+    this.filterProducts();
     this.currentPage = 1;
   }
 
@@ -124,14 +108,21 @@ export class PosComponent implements OnInit, OnDestroy {
     return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
-  addProduct(prod: Product) {
-    const existing = this.cart.find(c => c.name === prod.name);
-    if (existing) {
-      existing.qty++;
+  addToCart(product: Product): void {
+    const existingItem = this.cart.find(item => item.productId === product.id);
+    if (existingItem) {
+      existingItem.quantity++;
+      existingItem.qty++;
     } else {
-      this.cart.push({ ...prod, qty: 1 });
+      this.cart.push({
+        productId: product.id!,
+        name: product.name,
+        price: product.price,
+        quantity: 1,
+        qty: 1
+      });
     }
-    this.updateReturnAmount();
+    this.calculateTotal();
   }
 
   increment(i: number) {
@@ -150,36 +141,59 @@ export class PosComponent implements OnInit, OnDestroy {
     this.updateReturnAmount();
   }
 
-  getTotal() {
+  calculateTotal(): number {
     return this.cart.reduce((sum, item) => sum + item.price * item.qty, 0);
   }
 
-  updateReturnAmount() {
-    this.returnAmount = (this.cashPaid || 0) - this.getTotal();
+  getCartTotal(): number {
+    return this.cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   }
 
-  checkout() {
-    if (this.returnAmount < 0) {
-      alert('Insufficient cash paid!');
+  updateReturnAmount() {
+    this.returnAmount = (this.cashPaid || 0) - this.getCartTotal();
+  }
+
+  checkout(): void {
+    if (this.cart.length === 0) return;
+    if (this.cashPaid < this.getCartTotal()) {
+      this.error = 'Insufficient payment. Please enter a valid amount.';
       return;
     }
-    PosComponent.sales.push({
-      id: PosComponent.orderIdCounter++,
-      customerName: this.customerName,
-      items: this.cart.map(item => ({ ...item })),
-      total: this.getTotal(),
+
+    this.isCheckingOut = true;
+    this.error = null;
+    
+    const order = {
+      customerName: this.customerName || 'Walk-in Customer',
+      items: this.cart.map(item => ({
+        productId: item.productId,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity
+      })),
+      total: this.getCartTotal(),
       cashPaid: this.cashPaid,
       returnAmount: this.returnAmount,
       date: new Date()
+    };
+
+    this.orderService.createOrder(order).subscribe({
+      next: (savedOrder) => {
+        console.log('Order saved:', savedOrder);
+        this.cart = [];
+        this.customerName = '';
+        this.cashPaid = 0;
+        this.returnAmount = 0;
+        this.isCheckingOut = false;
+        // Show success message
+        alert('Order placed successfully!');
+      },
+      error: (error) => {
+        console.error('Error saving order:', error);
+        this.error = 'Failed to save order. Please try again.';
+        this.isCheckingOut = false;
+      }
     });
-    alert(
-      `Checkout successful!\nCustomer: ${this.customerName || 'N/A'}\nTotal: Rs ${this.getTotal()}\nCash Paid: Rs ${this.cashPaid}\nReturn: Rs ${this.returnAmount}\nItems: ${this.cart.length}`
-    );
-    this.cart = [];
-    this.customerName = '';
-    this.cashPaid = 0;
-    this.returnAmount = 0;
-    this.updateReturnAmount();
   }
 
   prevPage() {
@@ -193,13 +207,33 @@ export class PosComponent implements OnInit, OnDestroy {
   showAddProduct = false;
   newProductName = '';
   newProductPrice: number | null = null;
+  isAddingProduct = false;
 
+  getTotal(): number {
+    return this.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+  }
+  
   addProductToList() {
     if (!this.newProductName.trim() || !this.newProductPrice || this.newProductPrice <= 0) return;
-    this.products.push({ name: this.newProductName.trim(), price: this.newProductPrice });
-    this.filteredProducts = [...this.products];
-    this.newProductName = '';
-    this.newProductPrice = null;
-    this.showAddProduct = false;
+    
+    this.isAddingProduct = true;
+    const newProduct = { 
+      name: this.newProductName.trim(), 
+      price: this.newProductPrice 
+    };
+
+    this.productService.addProduct(newProduct).subscribe({
+      next: () => {
+        this.newProductName = '';
+        this.newProductPrice = null;
+        this.showAddProduct = false;
+        this.isAddingProduct = false;
+      },
+      error: (error) => {
+        console.error('Failed to add product', error);
+        alert('Failed to add product. Please try again.');
+        this.isAddingProduct = false;
+      }
+    });
   }
 }

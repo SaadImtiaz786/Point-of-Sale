@@ -1,8 +1,15 @@
 import { bootstrapApplication } from '@angular/platform-browser';
-import { provideRouter } from '@angular/router';
 import { AppComponent } from './app/app.component';
+import { appConfig } from './app/app.config';
 import { routes } from './app/app.config';
+import { provideRouter } from '@angular/router';
 
-bootstrapApplication(AppComponent, {
-  providers: [provideRouter(routes)]
-});
+const config = {
+  ...appConfig,
+  providers: [
+    ...(appConfig.providers || []),
+    provideRouter(routes)
+  ]
+};
+
+bootstrapApplication(AppComponent, config);

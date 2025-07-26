@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { NgIf, NgFor, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { PosComponent } from './pos.component';
+import { OrderService } from './services/order.service';
+import { SaleOrder } from './models';
 
 @Component({
   selector: 'app-orders',
@@ -10,22 +11,38 @@ import { PosComponent } from './pos.component';
   templateUrl: './orders.component.html',
   styleUrls: []
 })
-export class OrdersComponent {
+export class OrdersComponent implements OnInit {
   filterDate: string = '';
+  orders: SaleOrder[] = [];
+  isLoading = true;
+  error: string | null = null;
 
-  get sales() {
-    return PosComponent.sales;
+  constructor(private orderService: OrderService) {}
+
+  ngOnInit() {
+    this.loadOrders();
   }
 
-  get filteredSales() {
-    if (!this.filterDate) return this.sales;
-    return this.sales.filter(order => {
-      const localDate = new Date(order.date);
-      const yyyy = localDate.getFullYear();
-      const mm = String(localDate.getMonth() + 1).padStart(2, '0');
-      const dd = String(localDate.getDate()).padStart(2, '0');
-      const formatted = `${yyyy}-${mm}-${dd}`;
-      return formatted === this.filterDate;
+  public loadOrders() {
+    this.isLoading = true;
+    this.error = null;
+    
+    this.orderService.loadOrders().subscribe({
+      next: (orders) => {
+        this.orders = orders;
+        this.isLoading = false;
+      },
+      error: (err) => {
+        console.error('Failed to load orders', err);
+        this.error = 'Failed to load orders. Please try again.';
+        this.isLoading = false;
+        this.orders = [];
+      }
     });
+  }
+
+  get filteredSales(): SaleOrder[] {
+    if (!this.filterDate) return this.orders;
+    return this.orderService.getOrdersByDate(new Date(this.filterDate));
   }
 }
