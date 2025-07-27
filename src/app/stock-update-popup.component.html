@@ -1,0 +1,52 @@
+<div *ngIf="showStockUpdatePopup" class="stock-popup-overlay">
+  <div class="stock-popup">
+    <h3>Update Stock</h3>
+    <div *ngIf="selectedProductForStockUpdate">
+      <p>Product: <b>{{ selectedProductForStockUpdate.name }}</b></p>
+      <input type="number" [(ngModel)]="selectedProductForStockUpdate.stock" min="0" />
+      <button (click)="updateStock(selectedProductForStockUpdate.stock)">Update</button>
+      <button (click)="closeStockMenu()">Cancel</button>
+    </div>
+  </div>
+</div>
+<style>
+.stock-popup-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+.stock-popup {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 8px 32px #0002;
+  min-width: 260px;
+}
+.stock-popup h3 {
+  margin-top: 0;
+}
+.stock-popup input[type=number] {
+  width: 100%;
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e0e0e0;
+}
+.stock-popup button {
+  margin-right: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  background: #7b2ff2;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+.stock-popup button:last-child {
+  background: #888;
+}
+</style>

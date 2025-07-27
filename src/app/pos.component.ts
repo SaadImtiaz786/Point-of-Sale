@@ -1,18 +1,22 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { NgIf, NgFor, DatePipe, NgStyle, CommonModule } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ProductService } from './services/product.service';
 import { OrderService } from './services/order.service';
+import { ApiService } from './services/api.service';
 import { CartItem, Product, SaleOrder } from './models';
 
 @Component({
   selector: 'app-pos',
   standalone: true,
-  imports: [FormsModule, NgIf, NgFor],
+  imports: [FormsModule,CommonModule],
   templateUrl: './pos.component.html',
 })
 export class PosComponent implements OnInit, OnDestroy {
+  selectedProductForStockUpdate: Product | null = null;
+  showStockUpdatePopup = false;
+
   products: Product[] = [];
   filteredProducts: Product[] = [];
   cart: CartItem[] = [];
@@ -29,7 +33,8 @@ export class PosComponent implements OnInit, OnDestroy {
   constructor(
     private productService: ProductService,
     private orderService: OrderService,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    private apiService: ApiService
   ) {}
 
   ngOnInit(): void {
@@ -185,6 +190,7 @@ export class PosComponent implements OnInit, OnDestroy {
         this.cashPaid = 0;
         this.returnAmount = 0;
         this.isCheckingOut = false;
+        this.loadProducts(); // Refresh products to update stock
         // Show success message
         alert('Order placed successfully!');
       },
@@ -205,27 +211,57 @@ export class PosComponent implements OnInit, OnDestroy {
   }
 
   showAddProduct = false;
+
+  openStockMenu(product: Product) {
+    this.selectedProductForStockUpdate = product;
+    this.showStockUpdatePopup = true;
+  }
+
+  closeStockMenu() {
+    this.selectedProductForStockUpdate = null;
+    this.showStockUpdatePopup = false;
+  }
+
+  updateStock(newStock: number) {
+    if (!this.selectedProductForStockUpdate) return;
+    const updatedProduct: Product = {
+      ...this.selectedProductForStockUpdate,
+      stock: newStock
+    };
+    this.apiService.updateProductStock(updatedProduct.id!, updatedProduct).subscribe({
+      next: (result: Product) => {
+        this.selectedProductForStockUpdate!.stock = result.stock;
+        this.showStockUpdatePopup = false;
+      },
+      error: (err: any) => {
+        alert('Failed to update stock.');
+      }
+    });
+  }
   newProductName = '';
   newProductPrice: number | null = null;
   isAddingProduct = false;
+  newProductStock: number | null = null;
 
   getTotal(): number {
     return this.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
   }
   
   addProductToList() {
-    if (!this.newProductName.trim() || !this.newProductPrice || this.newProductPrice <= 0) return;
+    if (!this.newProductName.trim() || !this.newProductPrice || this.newProductPrice <= 0 || this.newProductStock == null || this.newProductStock < 0) return;
     
     this.isAddingProduct = true;
     const newProduct = { 
       name: this.newProductName.trim(), 
-      price: this.newProductPrice 
+      price: this.newProductPrice,
+      stock: this.newProductStock
     };
 
     this.productService.addProduct(newProduct).subscribe({
       next: () => {
         this.newProductName = '';
         this.newProductPrice = null;
+        this.newProductStock = null;
         this.showAddProduct = false;
         this.isAddingProduct = false;
       },

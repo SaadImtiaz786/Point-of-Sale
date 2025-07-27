@@ -17,7 +17,7 @@ export class ApiService {
     return this.http.get<Product[]>(`${this.apiUrl}/products`);
   }
 
-  addProduct(product: { name: string; price: number }): Observable<Product> {
+  addProduct(product: { name: string; price: number; stock: number }): Observable<Product> {
     return this.http.post<Product>(`${this.apiUrl}/products`, product);
   }
 
@@ -29,6 +29,11 @@ export class ApiService {
 
   createOrder(order: Omit<SaleOrder, 'id' | 'date'>): Observable<SaleOrder> {
     return this.http.post<SaleOrder>(`${this.apiUrl}/sales`, order);
+  }
+
+  updateProductStock(productId: number, product: Product): Observable<Product> {
+    // Send the full product object in PATCH body as expected by backend
+    return this.http.patch<Product>(`${this.apiUrl}/products/${productId}`, product);
   }
 
   // Add more API methods as needed
