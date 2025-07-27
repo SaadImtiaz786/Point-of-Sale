@@ -1,4 +1,4 @@
 export const environment = {
   production: false,
-  apiUrl: 'https://pos-backend-rg-gyemede9dddgbcbe.eastasia-01.azurewebsites.net/api'
+  apiUrl: 'https://pos-backend-server-development-cadbc7dnded2czg7.eastasia-01.azurewebsites.net/api'
 };
