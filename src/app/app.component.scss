@@ -8,6 +8,7 @@ nav {
     border-radius: 0 0 1.5rem 1.5rem;
     margin-bottom: 2.5rem;
   }
+  
   nav a {
     color: #fff;
     text-decoration: none;
@@ -20,12 +21,49 @@ nav {
     position: relative;
     outline: none;
   }
+  
   nav a.active, nav a.router-link-active {
     box-shadow: 0 2px 8px #ffe06644;
   }
+  
   nav a:focus {
     box-shadow: 0 0 0 2px #ffffff;
   }
+  
+  /* Button styles for navigation */
+  nav button {
+    transition: all 0.18s ease;
+    font-size: 0.95rem;
+  }
+  
+  nav button:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px #fff6 !important;
+  }
+  
+  nav button:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+  
+  nav button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed !important;
+    background: #f0f0f0 !important;
+    color: #999 !important;
+  }
+  
+  /* CSV upload specific styles */
+  .csv-upload-btn {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .csv-upload-btn input[type=file] {
+    position: absolute;
+    left: -9999px;
+    opacity: 0;
+  }
+  
   @media (max-width: 600px) {
     nav {
       flex-direction: column;
@@ -33,8 +71,23 @@ nav {
       padding: 1rem 0.5rem;
       font-size: 1rem;
     }
+    
     nav a {
       font-size: 1rem;
       padding: 0.3em 0.7em;
+    }
+    
+    nav div {
+      margin-left: 0 !important;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      width: 100%;
+    }
+    
+    nav button {
+      font-size: 0.9rem;
+      padding: 0.4em 0.8em;
+      justify-content: center;
     }
   }

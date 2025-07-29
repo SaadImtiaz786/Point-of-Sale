@@ -1,12 +1,36 @@
 <nav>
   <a routerLink="/" routerLinkActive="active">POS</a>
   <a routerLink="/orders" routerLinkActive="active">Orders</a>
-  <button
-    *ngIf="isPosPage"
-    (click)="toggleAddProduct()"
-    style="margin-left:auto;background:#fff;color:#7b2ff2;font-weight:700;border:none;border-radius:0.7em;padding:0.3em 1.1em;cursor:pointer;box-shadow:0 2px 8px #fff4;"
-  >
-    Add Product
-  </button>
+  
+  <div *ngIf="isPosPage" style="margin-left:auto;display:flex;gap:0.8rem;align-items:center;">
+    <!-- Hidden file input -->
+    <input 
+      id="csvFileInput"
+      type="file" 
+      accept=".csv"
+      (change)="onCSVFileSelected($event)"
+      style="display:none;"
+    />
+    
+    <!-- CSV Upload Button -->
+    <button
+      (click)="triggerFileInput()"
+      [disabled]="isUploadingCSV"
+      style="background:#fff;color:#7b2ff2;font-weight:700;border:none;border-radius:0.7em;padding:0.3em 1.1em;cursor:pointer;box-shadow:0 2px 8px #fff4;display:flex;align-items:center;gap:0.5em;"
+      title="Upload CSV file to add multiple products"
+    >
+      <span style="font-size:1.1em;">📄</span>
+      {{ isUploadingCSV ? 'Uploading...' : 'Upload CSV' }}
+    </button>
+    
+    <!-- Add Product Button -->
+    <button
+      (click)="toggleAddProduct()"
+      style="background:#fff;color:#7b2ff2;font-weight:700;border:none;border-radius:0.7em;padding:0.3em 1.1em;cursor:pointer;box-shadow:0 2px 8px #fff4;display:flex;align-items:center;gap:0.5em;"
+    >
+      <span style="font-size:1.1em;">➕</span>
+      Add Product
+    </button>
+  </div>
 </nav>
 <router-outlet></router-outlet>

@@ -63,15 +63,69 @@ export class PosComponent implements OnInit, OnDestroy {
       }
     });
     window.addEventListener('toggle-add-product', this.toggleAddProductForm);
+    window.addEventListener('csv-products-upload', this.handleCsvUpload);
   }
 
   ngOnDestroy() {
     window.removeEventListener('toggle-add-product', this.toggleAddProductForm);
+    window.removeEventListener('csv-products-upload', this.handleCsvUpload);
   }
 
   toggleAddProductForm = () => {
     this.showAddProduct = !this.showAddProduct;
   };
+
+  handleCsvUpload = (event: any) => {
+    const products = event.detail.products;
+    this.uploadProductsFromCSV(products);
+  };
+
+  uploadProductsFromCSV(products: any[]) {
+    this.isAddingProduct = true;
+    let successCount = 0;
+    let failCount = 0;
+    
+    // Process products one by one
+    const uploadNext = (index: number) => {
+      if (index >= products.length) {
+        // All products processed
+        this.isAddingProduct = false;
+        
+        // Notify completion
+        if (successCount > 0) {
+          alert(`Successfully added ${successCount} products!${failCount > 0 ? ` ${failCount} products failed to add.` : ''}`);
+        } else {
+          alert('No products were added. Please check your CSV format.');
+        }
+        
+        // Reset upload status in app component
+        window.dispatchEvent(new CustomEvent('csv-upload-complete'));
+        return;
+      }
+      
+      const productData = products[index];
+      const newProduct: Product = {
+        id: 0,
+        name: productData.name,
+        price: productData.price,
+        stock: productData.stock
+      };
+      
+      this.productService.addProduct(newProduct).subscribe({
+        next: () => {
+          successCount++;
+          uploadNext(index + 1);
+        },
+        error: (error) => {
+          console.error(`Failed to add product ${productData.name}:`, error);
+          failCount++;
+          uploadNext(index + 1);
+        }
+      });
+    };
+    
+    uploadNext(0);
+  }
 
   private loadProducts(): void {
     this.isLoading = true;
@@ -101,18 +155,43 @@ export class PosComponent implements OnInit, OnDestroy {
 
   filterProducts(): void {
     const searchTerm = this.productSearch ? this.productSearch.toLowerCase().trim() : '';
+    console.log('Filtering with term:', searchTerm); // Debug log
+    
     if (!searchTerm) {
       this.filteredProducts = [...this.products];
       return;
     }
+    
     this.filteredProducts = this.products.filter(p => 
       p.name.toLowerCase().includes(searchTerm)
     );
+    
+    console.log('Filtered products count:', this.filteredProducts.length); // Debug log
   }
 
   onProductSearch() {
     this.filterProducts();
     this.currentPage = 1;
+  }
+
+  onSearchInput(event: any) {
+    this.productSearch = event.target.value;
+    this.filterProducts();
+    this.currentPage = 1;
+  }
+
+  onSearchKeyup(event: any) {
+    this.productSearch = event.target.value;
+    this.filterProducts();
+    this.currentPage = 1;
+  }
+
+  // Force update method for mobile desktop mode issues
+  forceSearchUpdate() {
+    setTimeout(() => {
+      this.filterProducts();
+      this.currentPage = 1;
+    }, 0);
   }
 
   highlightSearch(name: string): SafeHtml {
