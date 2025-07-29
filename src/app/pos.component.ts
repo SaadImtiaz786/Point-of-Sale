@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
@@ -10,12 +10,15 @@ import { CartItem, Product, SaleOrder } from './models';
 @Component({
   selector: 'app-pos',
   standalone: true,
-  imports: [FormsModule,CommonModule],
+  imports: [FormsModule, CommonModule],
   templateUrl: './pos.component.html',
+  styleUrl: './pos.component.scss',
+  encapsulation: ViewEncapsulation.None 
 })
 export class PosComponent implements OnInit, OnDestroy {
   selectedProductForStockUpdate: Product | null = null;
   showStockUpdatePopup = false;
+  showAddProduct = false;
 
   products: Product[] = [];
   filteredProducts: Product[] = [];
@@ -29,6 +32,16 @@ export class PosComponent implements OnInit, OnDestroy {
   isLoading = true;
   error: string | null = null;
   isCheckingOut = false;
+  newProductName = '';
+  newProductPrice: number | null = null;
+  isAddingProduct = false;
+  newProductStock: number | null = null;
+
+  // New properties for price editing and discount
+  editingPriceIndex: number | null = null;
+  tempPrice: number = 0;
+  discountAmount: number = 0;
+  discountType: 'amount' | 'percentage' = 'amount';
 
   constructor(
     private productService: ProductService,
@@ -87,7 +100,7 @@ export class PosComponent implements OnInit, OnDestroy {
   }
 
   filterProducts(): void {
-    const searchTerm = this.productSearch.toLowerCase().trim();
+    const searchTerm = this.productSearch ? this.productSearch.toLowerCase().trim() : '';
     if (!searchTerm) {
       this.filteredProducts = [...this.products];
       return;
@@ -103,9 +116,12 @@ export class PosComponent implements OnInit, OnDestroy {
   }
 
   highlightSearch(name: string): SafeHtml {
-    if (!this.productSearch) return name;
-    const re = new RegExp(`(${this.escapeRegExp(this.productSearch)})`, 'ig');
-    const highlighted = name.replace(re, '<span class="highlight">$1</span>');
+    if (!this.productSearch || !this.productSearch.trim()) return name;
+    
+    const searchTerm = this.escapeRegExp(this.productSearch.trim());
+    const re = new RegExp(`(${searchTerm})`, 'ig');
+    const highlighted = name.replace(re, '<mark class="search-highlight">$1</mark>');
+    
     return this.sanitizer.bypassSecurityTrustHtml(highlighted);
   }
 
@@ -117,27 +133,28 @@ export class PosComponent implements OnInit, OnDestroy {
     const existingItem = this.cart.find(item => item.productId === product.id);
     if (existingItem) {
       existingItem.quantity++;
-      existingItem.qty++;
     } else {
       this.cart.push({
         productId: product.id!,
         name: product.name,
         price: product.price,
-        quantity: 1,
-        qty: 1
+        quantity: 1
       });
     }
-    this.calculateTotal();
+    this.updateReturnAmount();
   }
 
   increment(i: number) {
-    this.cart[i].qty++;
+    this.cart[i].quantity++;
     this.updateReturnAmount();
   }
 
   decrement(i: number) {
-    if (this.cart[i].qty > 1) this.cart[i].qty--;
-    else this.remove(i);
+    if (this.cart[i].quantity > 1) {
+      this.cart[i].quantity--;
+    } else {
+      this.remove(i);
+    }
     this.updateReturnAmount();
   }
 
@@ -146,16 +163,50 @@ export class PosComponent implements OnInit, OnDestroy {
     this.updateReturnAmount();
   }
 
-  calculateTotal(): number {
-    return this.cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+  // New methods for price editing
+  startEditingPrice(index: number) {
+    this.editingPriceIndex = index;
+    this.tempPrice = this.cart[index].price;
+  }
+
+  savePrice(index: number) {
+    if (this.tempPrice > 0) {
+      this.cart[index].price = this.tempPrice;
+      this.updateReturnAmount();
+    }
+    this.editingPriceIndex = null;
+  }
+
+  cancelEditPrice() {
+    this.editingPriceIndex = null;
+    this.tempPrice = 0;
+  }
+
+  getSubtotal(): number {
+    return this.cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  }
+
+  getDiscountAmount(): number {
+    const subtotal = this.getSubtotal();
+    if (this.discountType === 'percentage') {
+      return (subtotal * this.discountAmount) / 100;
+    }
+    return this.discountAmount;
   }
 
   getCartTotal(): number {
-    return this.cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const subtotal = this.getSubtotal();
+    const discount = this.getDiscountAmount();
+    return Math.max(0, subtotal - discount);
   }
 
   updateReturnAmount() {
     this.returnAmount = (this.cashPaid || 0) - this.getCartTotal();
+  }
+
+  resetDiscount() {
+    this.discountAmount = 0;
+    this.updateReturnAmount();
   }
 
   checkout(): void {
@@ -167,8 +218,9 @@ export class PosComponent implements OnInit, OnDestroy {
 
     this.isCheckingOut = true;
     this.error = null;
-    
-    const order = {
+
+    const order: SaleOrder = {
+      id: 0, // Assuming backend assigns ID
       customerName: this.customerName || 'Walk-in Customer',
       items: this.cart.map(item => ({
         productId: item.productId,
@@ -189,9 +241,10 @@ export class PosComponent implements OnInit, OnDestroy {
         this.customerName = '';
         this.cashPaid = 0;
         this.returnAmount = 0;
+        this.discountAmount = 0;
+        this.discountType = 'amount';
         this.isCheckingOut = false;
-        this.loadProducts(); // Refresh products to update stock
-        // Show success message
+        this.loadProducts();
         alert('Order placed successfully!');
       },
       error: (error) => {
@@ -209,8 +262,6 @@ export class PosComponent implements OnInit, OnDestroy {
   nextPage() {
     if (this.currentPage < this.totalPages) this.currentPage++;
   }
-
-  showAddProduct = false;
 
   openStockMenu(product: Product) {
     this.selectedProductForStockUpdate = product;
@@ -238,21 +289,14 @@ export class PosComponent implements OnInit, OnDestroy {
       }
     });
   }
-  newProductName = '';
-  newProductPrice: number | null = null;
-  isAddingProduct = false;
-  newProductStock: number | null = null;
 
-  getTotal(): number {
-    return this.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-  }
-  
   addProductToList() {
     if (!this.newProductName.trim() || !this.newProductPrice || this.newProductPrice <= 0 || this.newProductStock == null || this.newProductStock < 0) return;
-    
+
     this.isAddingProduct = true;
-    const newProduct = { 
-      name: this.newProductName.trim(), 
+    const newProduct: Product = {
+      id: 0, // Assuming backend assigns ID
+      name: this.newProductName.trim(),
       price: this.newProductPrice,
       stock: this.newProductStock
     };

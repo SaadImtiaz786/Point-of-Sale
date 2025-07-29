@@ -7,7 +7,7 @@ import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/rou
   standalone: true,
   imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule],
   templateUrl: './app.component.html',
-  styleUrls: []
+  styleUrls: ['./app.component.scss']
 })
 export class AppComponent {
   constructor(private router: Router) {}

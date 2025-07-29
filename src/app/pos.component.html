@@ -1,84 +1,3 @@
-<style>
-  .highlight {
-    background: #ffe066;
-    color: #222;
-    border-radius: 0.3em;
-    padding: 0 2px;
-  }
-  .checkout-btn {
-    background: linear-gradient(90deg, #7b2ff2 0%, #f357a8 100%);
-    color: #fff;
-    font-weight: 700;
-    font-size: 1.15rem;
-    border: none;
-    border-radius: 0.8rem;
-    padding: 0.85rem 2.5rem;
-    box-shadow: 0 4px 16px #7b2ff233;
-    cursor: pointer;
-    transition: background 0.18s, box-shadow 0.18s, transform 0.12s;
-    letter-spacing: 1px;
-    margin-top: 0.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.7em;
-  }
-  .checkout-btn:hover:not(:disabled) {
-    background: linear-gradient(90deg, #f357a8 0%, #7b2ff2 100%);
-    transform: translateY(-2px) scale(1.03);
-    box-shadow: 0 8px 24px #7b2ff244;
-  }
-  .checkout-btn:active:not(:disabled) {
-    transform: scale(0.98);
-  }
-  .checkout-btn:disabled {
-    background: #e0e0e0 !important;
-    color: #aaa !important;
-    cursor: not-allowed !important;
-    box-shadow: none !important;
-    border: none !important;
-    opacity: 0.7;
-  }
-  main.pos-main {
-    display: flex;
-    gap: 2rem;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: flex-start;
-    max-width: 1200px;
-    margin: 2rem auto;
-    min-height: 80vh;
-  }
-  .pos-cart {
-    width: 420px;
-    max-width: 95vw;
-  }
-  .pos-products {
-    flex: 1 1 0;
-    min-width: 320px;
-    max-width: 600px;
-    background: #fff;
-    border-radius: 1.5rem;
-    box-shadow: 0 4px 24px 0 #0001;
-    border: 1px solid #e0e0e0;
-    padding: 2rem 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.2rem;
-    height: fit-content;
-  }
-  @media (max-width: 900px) {
-    main.pos-main {
-      flex-direction: column;
-      align-items: center;
-      gap: 2rem;
-      margin: 1rem;
-    }
-    .pos-cart, .pos-products {
-      width: 100% !important;
-      max-width: 100vw !important;
-    }
-  }
-</style>
 <main class="pos-main">
   <!-- Cart/Checkout Section -->
   <div class="pos-cart">
@@ -99,27 +18,107 @@
           placeholder="Enter customer name"
         />
       </div>
+      
+      <!-- Cart Items -->
       <div style="margin:1.5rem 0 1rem 0;border-radius:1rem;background:#fafaff;border:1px solid #e0e0e0;padding:1rem 0.5rem;min-height:60px;">
         <div *ngIf="cart.length === 0" style="color:#888;text-align:center;">No products added.</div>
         <div *ngFor="let item of cart; let i = index" style="display:flex;align-items:center;justify-content:space-between;padding:0.7rem 0.5rem;border-bottom:1px solid #f0f0f0;gap:0.5rem;">
           <div style="flex:1 1 0;font-weight:500;color:#333;">{{ item.name }}</div>
+          
+          <!-- Quantity Controls -->
           <div style="display:flex;align-items:center;gap:0.3rem;">
             <button style="background:#7b2ff2;color:#fff;border:none;border-radius:50%;width:2rem;height:2rem;font-size:1.2rem;cursor:pointer;" (click)="decrement(i)">-</button>
-            <span style="min-width:2rem;text-align:center;font-size:1.1rem;font-weight:600;color:#7b2ff2;">{{ item.qty }}</span>
+            <span style="min-width:2rem;text-align:center;font-size:1.1rem;font-weight:600;color:#7b2ff2;">{{ item.quantity }}</span>
             <button style="background:#7b2ff2;color:#fff;border:none;border-radius:50%;width:2rem;height:2rem;font-size:1.2rem;cursor:pointer;" (click)="increment(i)">+</button>
             <button style="background:#fff0f3;color:#f357a8;border:none;border-radius:50%;width:1.7rem;height:1.7rem;font-size:1rem;cursor:pointer;margin-left:0.5rem;" (click)="remove(i)" title="Remove">&times;</button>
           </div>
-          <div style="width:60px;text-align:right;color:#888;font-size:1em;">
-            Rs {{ item.price * item.qty }}
+          
+          <!-- Price Display/Edit -->
+          <div style="min-width:80px;text-align:right;">
+            <div *ngIf="editingPriceIndex !== i" style="display:flex;align-items:center;justify-content:flex-end;gap:0.3rem;">
+              <span style="color:#888;font-size:0.9rem;">Rs {{ item.price }}</span>
+              <button 
+                style="background:none;border:none;color:#7b2ff2;cursor:pointer;font-size:0.8rem;padding:2px 4px;"
+                (click)="startEditingPrice(i)"
+                title="Edit price"
+              >✏️</button>
+            </div>
+            <div *ngIf="editingPriceIndex === i" style="display:flex;align-items:center;gap:0.2rem;">
+              <input 
+                type="number" 
+                [(ngModel)]="tempPrice"
+                style="width:60px;padding:2px 4px;border:1px solid #ddd;border-radius:3px;font-size:0.9rem;"
+                min="0.01"
+                step="0.01"
+                (keyup.enter)="savePrice(i)"
+                (keyup.escape)="cancelEditPrice()"
+              />
+              <button 
+                style="background:#4caf50;color:#fff;border:none;border-radius:3px;padding:2px 4px;font-size:0.8rem;cursor:pointer;"
+                (click)="savePrice(i)"
+              >✓</button>
+              <button 
+                style="background:#f44336;color:#fff;border:none;border-radius:3px;padding:2px 4px;font-size:0.8rem;cursor:pointer;"
+                (click)="cancelEditPrice()"
+              >✗</button>
+            </div>
+            <div style="color:#333;font-weight:600;font-size:0.95rem;margin-top:2px;">
+              Rs {{ item.price * item.quantity }}
+            </div>
           </div>
         </div>
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:1.7rem;gap:1rem;">
-        <div>
-          <span style="font-size:1.1rem;color:#888;font-weight:500;">Total:</span>
-          <span style="font-size:1.5rem;font-weight:700;color:#4caf50;">Rs {{ getTotal() }}</span>
+
+      <!-- Subtotal and Discount Section -->
+      <div style="margin:1rem 0;padding:1rem;background:#f8f9ff;border-radius:0.8rem;border:1px solid #e8e9f3;">
+        <!-- Subtotal -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.8rem;">
+          <span style="font-size:1rem;color:#666;font-weight:500;">Subtotal:</span>
+          <span style="font-size:1.2rem;font-weight:600;color:#333;">Rs {{ getSubtotal() }}</span>
+        </div>
+
+        <!-- Discount Section -->
+        <div style="border-top:1px solid #e0e0e0;padding-top:0.8rem;">
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
+            <label style="font-size:0.95rem;color:#666;font-weight:500;min-width:60px;">Discount:</label>
+            <select 
+              [(ngModel)]="discountType" 
+              (change)="updateReturnAmount()"
+              style="padding:0.3rem;border:1px solid #ddd;border-radius:4px;font-size:0.9rem;"
+            >
+              <option value="amount">Amount (Rs)</option>
+              <option value="percentage">Percentage (%)</option>
+            </select>
+            <input 
+              type="number" 
+              [(ngModel)]="discountAmount"
+              (input)="updateReturnAmount()"
+              placeholder="0"
+              min="0"
+              [max]="discountType === 'percentage' ? 100 : getSubtotal()"
+              style="width:80px;padding:0.3rem;border:1px solid #ddd;border-radius:4px;font-size:0.9rem;"
+            />
+            <button 
+              style="background:#ff6b6b;color:#fff;border:none;border-radius:4px;padding:0.3rem 0.6rem;font-size:0.8rem;cursor:pointer;"
+              (click)="resetDiscount()"
+              title="Reset discount"
+            >Reset</button>
+          </div>
+          
+          <div *ngIf="getDiscountAmount() > 0" style="display:flex;justify-content:space-between;align-items:center;color:#f357a8;font-size:0.95rem;">
+            <span>Discount Applied:</span>
+            <span>- Rs {{ getDiscountAmount() }}</span>
+          </div>
         </div>
       </div>
+
+      <!-- Total -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:1rem;padding:0.8rem;background:#f0fff4;border-radius:0.8rem;border:1px solid #c8e6c9;">
+        <span style="font-size:1.2rem;color:#2e7d32;font-weight:600;">Total:</span>
+        <span style="font-size:1.6rem;font-weight:700;color:#2e7d32;">Rs {{ getCartTotal() }}</span>
+      </div>
+
+      <!-- Cash Paid -->
       <div style="margin:1rem 0; display: flex; flex-direction: column; align-items: center;">
         <label 
           style="font-size:1rem;color:#888;font-weight:500; margin-bottom: 0.5rem; text-align: center; width: 100%;"
@@ -139,6 +138,8 @@
           onwheel="this.blur()" 
         />
       </div>
+
+      <!-- Return Amount -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;" *ngIf="cashPaid > 0">
         <div>
           <span style="font-size:1.1rem;color:#888;font-weight:500;">Return to Customer:</span>
@@ -152,15 +153,17 @@
           </span>
         </div>
       </div>
+
+      <!-- Checkout Button -->
       <div style="display:flex;justify-content:flex-end;">
         <button
           class="checkout-btn"
-          [disabled]="cart.length === 0 || returnAmount < 0"
+          [disabled]="cart.length === 0 || returnAmount < 0 || isCheckingOut"
           (click)="checkout()"   
         >
           <span>
             <svg width="22" height="22" fill="none" viewBox="0 0 24 24"><path fill="#fff" d="M7 18c-1.1 0-2-.9-2-2V7c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2v9c0 1.1-.9 2-2 2H7zm0 2h10c2.21 0 4-1.79 4-4V7c0-2.21-1.79-4-4-4H7C4.79 3 3 4.79 3 7v9c0 2.21 1.79 4 4 4z"/></svg>
-            Checkout
+            {{ isCheckingOut ? 'Processing...' : 'Checkout' }}
           </span>
         </button>
       </div>
@@ -216,48 +219,6 @@
     </div>
   </div>
 </div>
-<style>
-.stock-popup-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-}
-.stock-popup {
-  background: #fff;
-  padding: 2rem;
-  border-radius: 1rem;
-  box-shadow: 0 8px 32px #0002;
-  min-width: 260px;
-}
-.stock-popup h3 {
-  margin-top: 0;
-}
-.stock-popup input[type=number] {
-  width: 100%;
-  padding: 0.5rem;
-  margin-bottom: 1rem;
-  border-radius: 0.5rem;
-  border: 1px solid #e0e0e0;
-}
-.stock-popup button {
-  margin-right: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  border: none;
-  background: #7b2ff2;
-  color: #fff;
-  font-weight: 600;
-  cursor: pointer;
-}
-.stock-popup button:last-child {
-  background: #888;
-}
-</style>
-
 
 <!-- Add Product Modal -->
 <div 
@@ -302,9 +263,10 @@
     </div>
     <button 
       (click)="addProductToList()" 
-      [disabled]="!newProductName.trim() || !newProductPrice || newProductPrice <= 0 || newProductStock == null || newProductStock < 0"
+      [disabled]="!newProductName.trim() || !newProductPrice || newProductPrice <= 0 || newProductStock == null || newProductStock < 0 || isAddingProduct"
       style="background:#7b2ff2;color:#fff;border:none;border-radius:0.5rem;padding:0.7rem 2.2rem;font-weight:600;font-size:1.1rem;cursor:pointer;"
     >
-      Save    </button>
+      {{ isAddingProduct ? 'Adding...' : 'Save' }}
+    </button>
   </div>
 </div>

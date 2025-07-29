@@ -33,5 +33,5 @@ export interface SaleOrder {
 
 // Cart Item model (for frontend use)
 export interface CartItem extends Omit<OrderItem, 'id' | 'orderId'> {
-  qty: number;
+  // Removed qty to use quantity consistently
 }
